@@ -1,52 +1,69 @@
-# Preencher Excel Licenças
+# Preencher Excel Licenças v0.52
 
-![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)
+[![Licença: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Este é um script de usuário (userscript) desenvolvido para o Tampermonkey, projetado para facilitar o preenchimento de planilhas do Excel a partir de tickets no Octadesk. Ele extrai informações como Razão Social, CNPJ/CPF e Número do Banco de Dados de um texto selecionado, solicita entrada manual para a coluna A e formata os dados para colagem em colunas específicas do Excel.
+Este é um script de usuário (userscript) desenvolvido para o Tampermonkey, projetado para **automatizar o preenchimento de planilhas do Excel** a partir de tickets no Octadesk. Ele extrai informações automaticamente da interface, solicita entradas do usuário via modais e copia os dados formatados para a área de transferência em etapas.
 
-## Funcionalidades
+---
 
-- **Extração Automática:** Extrai dados (Razão Social, CNPJ/CPF, Número do Banco) de tickets selecionados no Octadesk.
-- **Entrada Manual:** Permite ao usuário inserir o texto da coluna A via modal.
-- **Cópia em Etapas:** Copia os dados em duas etapas (colunas B-E e H) para evitar sobrescrever colunas protegidas.
-- **Hotkey:** Ativado com Ctrl+Q.
-- **Interface Visual:** Usa modais estilizados com feedback visual e suporte à tecla Enter.
-- **Versionamento:** Armazena a versão atual no localStorage para rastreamento de atualizações.
+## 🚀 Funcionalidades
 
-## Pré-requisitos
+- **Extração Automática de Dados**: Obtém o número do ticket, Razão Social, CNPJ/CPF e Número do Banco de Dados diretamente da tela do ticket do Octadesk.
+- **Fluxos de Trabalho por Atalhos**:
+  - `Ctrl + Q`: **Licença** - Copia dados para colunas B-E e H do Excel.
+  - `Ctrl + Shift + Q`: **Troca** - Copia texto formatado para troca.
+  - `Ctrl + Shift + C`: **Cancelamento** - Copia texto formatado para cancelamento.
+  - `Ctrl + Shift + S`: **Consulta CNPJ** - Consulta uma API externa e copia o nome do cliente.
+- **Interface Visual Intuitiva**: Utiliza modais estilizados para interação com o usuário, com suporte total ao teclado (Enter para confirmar, Esc para cancelar).
+- **Cópia em Etapas**: Para o fluxo de licença, os dados são copiados em duas etapas (B-E e H) para facilitar o preenchimento sequencial da planilha.
+- **Consulta de API Segura**: O fluxo de consulta de CNPJ se comunica com um endpoint externo utilizando autenticação básica. _(Credenciais não são expostas neste documento.)_
+- **Versionamento Interno**: A versão do script (v0.52) é definida internamente para controle.
 
-- **Navegador:** Chrome, Firefox ou outro compatível com extensões.
-- **Tampermonkey:** Extensão instalada (disponível na Chrome Web Store ou Firefox Add-ons).
-- **Acesso ao Octadesk:** Permissão para acessar tickets em https://app.octadesk.com.
+---
 
-## Instalação
+## 📋 Pré-requisitos
 
-- Instale a extensão Tampermonkey no seu navegador.
-- Clique em "Criar um novo script" no Tampermonkey.
-- Copie e cole o conteúdo do arquivo octadesk_hotkey.js neste repositório.
-- Salve o script (Ctrl+S ou File > Save).
-- Recarregue a página do Octadesk (https://app.octadesk.com/ticket/edit/*).
+- **Navegador**: Google Chrome, Mozilla Firefox ou outro compatível com extensões userscript.
+- **Gerenciador de Scripts**: Extensão [Tampermonkey](https://www.tampermonkey.net/) instalada.
+- **Acesso ao Octadesk**: Conta com permissão para visualizar tickets em `https://app.octadesk.com`.
 
-## Uso
+---
 
-- Abra uma página de ticket no Octadesk (ex.: https://app.octadesk.com/ticket/edit/195881).
-- Selecione o texto do ticket que contém as informações (Razão Social, CNPJ/CPF, Número do Banco de Dados).
-- Pressione Ctrl+Q para iniciar o script.
-- Um modal aparecerá pedindo o texto da coluna A. Digite o valor e pressione Enter ou clique em "Próximo".
-- O script copiará os dados para as colunas B, C, D e E. Cole-os no Excel.
-- Clique em "Próximo" (ou pressione Enter) para copiar o texto formatado da coluna H e cole-o no Excel.
-- Clique em "Finalizar" para encerrar o processo.
+## ⚙️ Instalação
 
-## Estrutura do Script
+1.  Instale a extensão Tampermonkey no seu navegador.
+2.  Clique no ícone do Tampermonkey e selecione "**Criar um novo script**".
+3.  **Substitua todo o código padrão** pelo conteúdo completo do script v0.52.
+4.  Salve o script (pressione `Ctrl + S` ou vá em `File > Save`).
+5.  Recarregue qualquer página de ticket do Octadesk (ex: `https://app.octadesk.com/ticket/12345`) para ativar o script.
 
-- Versão Atual: 0.24 (ver changelog no código).
-- Dependências: Nenhuma (usa apenas APIs nativas do navegador).
-- LocalStorage: Utilizado para armazenar temporariamente o texto formatado e a versão do script.
+---
 
-## Contribuições
+## 🖱️ Uso (Fluxo de Licença - Exemplo)
 
-Sinta-se à vontade para abrir issues ou pull requests neste repositório.
+1.  Navegue até a página de um ticket no Octadesk.
+2.  Pressione `Ctrl + Q`.
+3.  Um modal aparecerá solicitando o "**texto da coluna A**". Digite o valor e pressione `Enter` ou clique em "**Próximo**".
+4.  O script copiará automaticamente os dados para as **colunas B, C, D e E** (Razão Social, CNPJ, Data Atual, Banco). Cole-os no Excel.
+5.  Um novo modal aparecerá. Clique em "**Próximo**" para copiar o texto formatado para a **coluna H**.
+6.  Após colar a coluna H, clique em "**Finalizar**" para encerrar o processo.
 
-## Licença
+---
 
-Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+## 🧩 Estrutura do Script
+
+- **Versão Atual**: `0.52`
+- **Dependências**: Nenhuma. Utiliza apenas APIs nativas do navegador e a função `GM_xmlhttpRequest` do Tampermonkey.
+- **Armazenamento Temporário**: Utiliza `localStorage` apenas para armazenar temporariamente o texto da coluna H entre as etapas do fluxo de licença.
+
+---
+
+## 🤝 Contribuições
+
+Sinta-se à vontade para abrir _issues_ ou _pull requests_ neste repositório para sugerir melhorias ou relatar bugs.
+
+---
+
+## 📜 Licença
+
+Este projeto está licenciado sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
