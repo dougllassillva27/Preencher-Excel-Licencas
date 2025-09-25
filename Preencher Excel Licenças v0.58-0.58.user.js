@@ -1,12 +1,24 @@
 // ==UserScript==
-// @name         Preencher Excel Licenças v0.52
+// @name         Preencher Excel Licenças v0.58
 // @namespace    http://tampermonkey.net/
-// @version      0.52
+// @version      0.58
 // @description  Adiciona múltiplos atalhos para automação de cópia e consulta de CNPJ no Octadesk.
 // @author       Douglas Silva
 // @match        https://app.octadesk.com/*
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
+
+// Mostrar atalhos disponíveis no console
+console.log(`
+🚀 [OCTADESK SCRIPT v0.58] Atalhos Disponíveis:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⌨️  Ctrl + Q          → Fluxo de Licença
+⌨️  Ctrl + Shift + Q  → Fluxo de Troca
+⌨️  Ctrl + Shift + C  → Fluxo de Cancelamento
+⌨️  Ctrl + Shift + S  → Consulta CNPJ
+⌨️  Ctrl + Shift + F  → Consulta Banco
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    `);
 
 (function () {
   'use strict';
@@ -19,7 +31,10 @@
 
   // --- Configurações ---
   const PREFIXO_ALVO = '/ticket/';
-  const SCRIPT_VERSION = '0.52';
+  const SCRIPT_VERSION = '0.58';
+
+  // URL DO SEU PROJETO DE LICENÇAS
+  const URL_CONSULTA_BANCO = '[URL-CONSULTA-OMITIDO]';
 
   // ===================================================================================
   // PARTE 1: FUNÇÕES UTILITÁRIAS
@@ -76,7 +91,7 @@
   }
 
   // ===================================================================================
-  // PARTE 2: UI (MODAIS)
+  // PARTE 2: UI (MODAIS) - VERSÃO MELHORADA
   // ===================================================================================
 
   let modalOverlay = null,
@@ -170,8 +185,186 @@
     }
   }
 
+  // 🎨 NOVA FUNÇÃO: Modal Tabular para Resultados de Banco
+  function exibirModalTabular(bancoPesquisado, resultados, metadados) {
+    try {
+      ocultarModal();
+
+      modalOverlay = document.createElement('div');
+      Object.assign(modalOverlay.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: '9999',
+      });
+
+      modal = document.createElement('div');
+      Object.assign(modal.style, {
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        backgroundColor: 'white',
+        padding: '25px',
+        borderRadius: '15px',
+        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)',
+        maxWidth: '95%',
+        width: '1200px',
+        maxHeight: '90%',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '14px',
+        zIndex: '10001',
+        overflowY: 'auto',
+      });
+      modal.tabIndex = 0;
+
+      // Cabeçalho
+      const cabecalho = document.createElement('div');
+      Object.assign(cabecalho.style, {
+        textAlign: 'center',
+        marginBottom: '20px',
+        borderBottom: '2px solid #e0e0e0',
+        paddingBottom: '15px',
+      });
+      cabecalho.innerHTML = `
+                <h2 style="margin: 0 0 10px 0; color: #2e7d32; font-size: 24px;">✅ BANCO ${bancoPesquisado} ENCONTRADO!</h2>
+                <p style="margin: 0; color: #666; font-size: 16px;">🎯 ${resultados.length} registro(s) encontrado(s)</p>
+            `;
+      modal.appendChild(cabecalho);
+
+      // Tabela de Resultados
+      if (resultados.length > 0) {
+        const tabelaContainer = document.createElement('div');
+        Object.assign(tabelaContainer.style, {
+          overflowX: 'auto',
+          marginBottom: '20px',
+          border: '1px solid #ddd',
+          borderRadius: '8px',
+        });
+
+        const tabela = document.createElement('table');
+        Object.assign(tabela.style, {
+          width: '100%',
+          borderCollapse: 'collapse',
+          fontSize: '13px',
+          backgroundColor: 'white',
+        });
+
+        // Cabeçalho da Tabela
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+                    <tr style="background: linear-gradient(135deg, #42a5f5, #1976d2); color: white;">
+                        <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: center; min-width: 60px;">Linha</th>
+                        <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: left; min-width: 200px;">Revenda</th>
+                        <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: left; min-width: 200px;">Cliente</th>
+                        <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: center; min-width: 120px;">Documento</th>
+                        <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: center; min-width: 90px;">Data</th>
+                        <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: center; min-width: 70px;">Banco</th>
+                        <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: center; min-width: 80px;">Nº Licença</th>
+                        <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: center; min-width: 80px;">Tipo</th>
+                        <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: left; min-width: 150px;">Ticket</th>
+                    </tr>
+                `;
+        tabela.appendChild(thead);
+
+        // Corpo da Tabela
+        const tbody = document.createElement('tbody');
+        resultados.forEach((resultado, index) => {
+          const cor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
+          const row = document.createElement('tr');
+          row.style.backgroundColor = cor;
+          row.style.transition = 'background-color 0.2s ease';
+          row.addEventListener('mouseover', () => (row.style.backgroundColor = '#e3f2fd'));
+          row.addEventListener('mouseout', () => (row.style.backgroundColor = cor));
+
+          row.innerHTML = `
+                        <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #1976d2;">${resultado.linha}</td>
+                        <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: left; font-weight: 500;">${resultado.revenda || '-'}</td>
+                        <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: left;">${resultado.cliente || '-'}</td>
+                        <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; font-family: monospace;">${resultado.documento || '-'}</td>
+                        <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center;">${resultado.data_liberacao || '-'}</td>
+                        <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #2e7d32; background-color: #e8f5e8;">${resultado.banco}</td>
+                        <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center;">${resultado.numero_licenca || '-'}</td>
+                        <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center;">${resultado.tipo_licenca || '-'}</td>
+                        <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: left; font-size: 12px;">${resultado.ticket || '-'}</td>
+                    `;
+          tbody.appendChild(row);
+        });
+        tabela.appendChild(tbody);
+        tabelaContainer.appendChild(tabela);
+        modal.appendChild(tabelaContainer);
+      }
+
+      // Metadados (Estatísticas)
+      if (metadados) {
+        const metadadosDiv = document.createElement('div');
+        Object.assign(metadadosDiv.style, {
+          backgroundColor: '#f5f5f5',
+          padding: '15px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          fontSize: '13px',
+          color: '#555',
+        });
+        metadadosDiv.innerHTML = `
+                    <h4 style="margin: 0 0 10px 0; color: #333; font-size: 16px;">📊 Estatísticas da Consulta:</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <div><strong>Estrutura detectada:</strong> ${metadados.estrutura_detectada}</div>
+                        <div><strong>Linhas analisadas:</strong> ${metadados.linhas_analisadas?.toLocaleString() || 'N/A'}</div>
+                        <div><strong>Linhas com banco:</strong> ${metadados.linhas_com_banco?.toLocaleString() || 'N/A'}</div>
+                        <div><strong>Linhas vazias:</strong> ${metadados.linhas_vazias?.toLocaleString() || 'N/A'}</div>
+                    </div>
+                `;
+        modal.appendChild(metadadosDiv);
+      }
+
+      // Botões
+      const containerBotoes = document.createElement('div');
+      Object.assign(containerBotoes.style, {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '15px',
+      });
+
+      const botaoOK = document.createElement('button');
+      botaoOK.textContent = 'OK';
+      Object.assign(botaoOK.style, {
+        cursor: 'pointer',
+        padding: '12px 25px',
+        backgroundColor: '#1976d2',
+        color: 'white',
+        border: 'none',
+        borderRadius: '8px',
+        fontSize: '16px',
+        fontWeight: 'bold',
+        transition: 'all 0.2s ease',
+      });
+      botaoOK.addEventListener('mouseover', () => {
+        botaoOK.style.backgroundColor = '#1565c0';
+        botaoOK.style.transform = 'translateY(-1px)';
+      });
+      botaoOK.addEventListener('mouseout', () => {
+        botaoOK.style.backgroundColor = '#1976d2';
+        botaoOK.style.transform = 'translateY(0)';
+      });
+      botaoOK.addEventListener('click', ocultarModal);
+      containerBotoes.appendChild(botaoOK);
+
+      modal.appendChild(containerBotoes);
+      document.body.appendChild(modalOverlay);
+      document.body.appendChild(modal);
+      modal.focus();
+    } catch (e) {
+      console.error('[Octadesk Script] Erro ao criar modal tabular:', e);
+      exibirModal('Erro ao exibir resultados. Verifique o console.', false, null, 'OK', false);
+    }
+  }
+
   // ===================================================================================
-  // PARTE 3: FLUXOS DE TRABALHO
+  // PARTE 3: FLUXOS DE TRABALHO (mantidos + função atualizada)
   // ===================================================================================
 
   const PADROES_RAZAO_SOCIAL = ['Razão Social do Cliente', 'Nome do Cliente'];
@@ -271,15 +464,15 @@
         }
         const cnpjLimpo = cnpj.replace(/[^\d]/g, '');
 
-        const username = 'XXXXXXXXXXXXXX';
-        const password = 'XXXXXXXXXXXXXXX';
+        const username = '[CREDENCIAIS-OMITIDAS]';
+        const password = '[CREDENCIAIS-OMITIDAS]';
         const credentials = btoa(`${username}:${password}`);
 
         exibirModal('Consultando API...', false, null, '', false);
 
         GM_xmlhttpRequest({
           method: 'GET',
-          url: `XXXXXXXXXXXXXXXX${cnpjLimpo}`,
+          url: `http://[API-ENDPOINT-OMITIDO]/${cnpjLimpo}`,
           headers: { Authorization: `Basic ${credentials}` },
           timeout: 15000,
           onload: function (response) {
@@ -321,6 +514,64 @@
     );
   }
 
+  // ⭐ FUNÇÃO ATUALIZADA: Consulta de Banco com Modal Tabular
+  function executarFluxoDeConsultaBanco() {
+    exibirModal(
+      'Digite o número do banco para consulta:',
+      true,
+      (numeroBanco) => {
+        if (!numeroBanco || !/^\d+$/.test(numeroBanco.trim())) {
+          exibirModal('Número do banco inválido. Digite apenas números.', false, null, 'OK', false);
+          return;
+        }
+
+        const numeroBancoLimpo = numeroBanco.trim();
+        exibirModal('🔍 Consultando banco de dados...', false, null, '', false);
+
+        GM_xmlhttpRequest({
+          method: 'GET',
+          url: `${URL_CONSULTA_BANCO}?banco=${encodeURIComponent(numeroBancoLimpo)}`,
+          timeout: 20000,
+          onload: function (response) {
+            ocultarModal();
+            if (response.status === 200) {
+              try {
+                const resultado = JSON.parse(response.responseText);
+
+                if (resultado.sucesso) {
+                  if (resultado.encontrado) {
+                    // 🎨 Usar o novo modal tabular
+                    exibirModalTabular(numeroBancoLimpo, resultado.resultados, resultado.metadados);
+                  } else {
+                    const metadados = resultado.metadados ? `\n\n📊 Análise realizada:\n• Estrutura: ${resultado.metadados.estrutura_detectada}\n• ${resultado.metadados.linhas_analisadas?.toLocaleString()} linhas verificadas\n• ${resultado.metadados.linhas_com_banco?.toLocaleString()} com banco válido` : '';
+
+                    exibirModal(`❌ BANCO ${numeroBancoLimpo} NÃO ENCONTRADO\n\nO número do banco não foi localizado no sistema.${metadados}\n\nVerifique se o número está correto.`, false, null, 'OK', false);
+                  }
+                } else {
+                  exibirModal('⚠️ Erro na consulta:\n' + resultado.erro, false, null, 'OK', false);
+                }
+              } catch (e) {
+                console.error('Erro ao processar resposta:', e);
+                exibirModal('❌ Erro ao processar resposta do servidor.\n\nTente novamente em alguns instantes.', false, null, 'OK', false);
+              }
+            } else {
+              exibirModal(`❌ Erro de conexão\n\nStatus HTTP: ${response.status}`, false, null, 'OK', false);
+            }
+          },
+          onerror: function () {
+            ocultarModal();
+            exibirModal('❌ Erro de rede\n\nVerifique sua conexão e tente novamente.', false, null, 'OK', false);
+          },
+          ontimeout: function () {
+            ocultarModal();
+            exibirModal('⏱️ Timeout na consulta\n\nO servidor demorou para responder. Tente novamente.', false, null, 'OK', false);
+          },
+        });
+      },
+      'Consultar'
+    );
+  }
+
   // ===================================================================================
   // PARTE 4: LISTENER PRINCIPAL (ROTEADOR DE EVENTOS)
   // ===================================================================================
@@ -334,6 +585,7 @@
     const atalhoLicenca = evento.ctrlKey && !evento.shiftKey && evento.key.toLowerCase() === 'q';
     const atalhoCancelamento = evento.ctrlKey && evento.shiftKey && evento.key.toLowerCase() === 'c';
     const atalhoConsultaCnpj = evento.ctrlKey && evento.shiftKey && evento.key.toLowerCase() === 's';
+    const atalhoConsultaBanco = evento.ctrlKey && evento.shiftKey && evento.key.toLowerCase() === 'f';
 
     if (atalhoTroca) {
       evento.preventDefault();
@@ -347,6 +599,9 @@
     } else if (atalhoConsultaCnpj) {
       evento.preventDefault();
       executarFluxoDeConsultaCNPJ();
+    } else if (atalhoConsultaBanco) {
+      evento.preventDefault();
+      executarFluxoDeConsultaBanco();
     }
   });
 })();
