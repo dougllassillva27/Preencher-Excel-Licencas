@@ -18,7 +18,7 @@ console.log(`
 ⌨️  Ctrl + Shift + S  → Consulta CNPJ
 ⌨️  Ctrl + Shift + F  → Consulta Banco
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    `);
+`);
 
 (function () {
   'use strict';
@@ -29,12 +29,46 @@ console.log(`
   }
   console.log('[Octadesk Script] Rodando dentro de um IFrame. Listener de atalhos está ativo.');
 
-  // --- Configurações ---
-  const PREFIXO_ALVO = '/ticket/';
-  const SCRIPT_VERSION = '0.58';
+  // ===================================================================================
+  // 🔧 CONFIGURAÇÕES CENTRALIZADAS
+  // ===================================================================================
 
-  // URL DO SEU PROJETO DE LICENÇAS
-  const URL_CONSULTA_BANCO = '[URL-CONSULTA-OMITIDO]';
+  // 📍 Configurações Gerais
+  const CONFIG = {
+    SCRIPT_VERSION: '0.58',
+    PREFIXO_ALVO: '/ticket/',
+  };
+
+  // 🌐 APIs e Endpoints
+  const API_ENDPOINTS = {
+    // API de Consulta de Banco (Secullum/Listar-Licenças)
+    CONSULTA_BANCO: 'XXXXXXXXXXXX',
+
+    // API de Consulta CNPJ
+    CONSULTA_CNPJ: 'XXXXXXXXXX',
+  };
+
+  // 🔐 Credenciais de Autenticação
+  const API_CREDENTIALS = {
+    // Credenciais para API de CNPJ (Basic Auth)
+    CNPJ_API: {
+      username: 'XXXXXXX',
+      password: 'XXXXXXX',
+    },
+  };
+
+  // ⏱️ Timeouts (em milissegundos)
+  const TIMEOUTS = {
+    CONSULTA_BANCO: 20000, // 20 segundos
+    CONSULTA_CNPJ: 15000, // 15 segundos
+  };
+
+  // 🎯 Padrões de Extração de Dados do DOM
+  const PADROES_EXTRACAO = {
+    RAZAO_SOCIAL: ['Razão Social do Cliente', 'Nome do Cliente'],
+    CNPJ: ['CPF/CNPJ do Cliente', 'Cnpj ou Cpf cliente'],
+    BANCO: ['Número do Banco de Dados'],
+  };
 
   // ===================================================================================
   // PARTE 1: FUNÇÕES UTILITÁRIAS
@@ -265,9 +299,11 @@ console.log(`
                         <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: center; min-width: 70px;">Banco</th>
                         <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: center; min-width: 80px;">Nº Licença</th>
                         <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: center; min-width: 80px;">Tipo</th>
+                        <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: center; min-width: 70px;">Isento</th>
                         <th style="padding: 12px 8px; border: 1px solid #ddd; font-weight: bold; text-align: left; min-width: 150px;">Ticket</th>
                     </tr>
                 `;
+
         tabela.appendChild(thead);
 
         // Corpo da Tabela
@@ -289,8 +325,10 @@ console.log(`
                         <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #2e7d32; background-color: #e8f5e8;">${resultado.banco}</td>
                         <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center;">${resultado.numero_licenca || '-'}</td>
                         <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center;">${resultado.tipo_licenca || '-'}</td>
+                        <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #2e7d32; background-color: #e8f5e8;">${resultado.isento || '-'}</td>
                         <td style="padding: 10px 8px; border: 1px solid #ddd; text-align: left; font-size: 12px;">${resultado.ticket || '-'}</td>
                     `;
+
           tbody.appendChild(row);
         });
         tabela.appendChild(tbody);
@@ -364,12 +402,8 @@ console.log(`
   }
 
   // ===================================================================================
-  // PARTE 3: FLUXOS DE TRABALHO (mantidos + função atualizada)
+  // PARTE 3: FLUXOS DE TRABALHO
   // ===================================================================================
-
-  const PADROES_RAZAO_SOCIAL = ['Razão Social do Cliente', 'Nome do Cliente'];
-  const PADROES_CNPJ = ['CPF/CNPJ do Cliente', 'Cnpj ou Cpf cliente'];
-  const PADROES_BANCO = ['Número do Banco de Dados'];
 
   function executarFluxoDeLicenca() {
     const numeroTicket = obterNumeroTicket();
@@ -378,9 +412,9 @@ console.log(`
       return;
     }
 
-    const razaoSocial = extrairDado(PADROES_RAZAO_SOCIAL);
-    const cnpj = extrairDado(PADROES_CNPJ);
-    const banco = extrairDado(PADROES_BANCO);
+    const razaoSocial = extrairDado(PADROES_EXTRACAO.RAZAO_SOCIAL);
+    const cnpj = extrairDado(PADROES_EXTRACAO.CNPJ);
+    const banco = extrairDado(PADROES_EXTRACAO.BANCO);
     const dataCorrente = formatarDataAtual();
 
     exibirModal(
@@ -464,17 +498,15 @@ console.log(`
         }
         const cnpjLimpo = cnpj.replace(/[^\d]/g, '');
 
-        const username = '[CREDENCIAIS-OMITIDAS]';
-        const password = '[CREDENCIAIS-OMITIDAS]';
-        const credentials = btoa(`${username}:${password}`);
+        const credentials = btoa(`${API_CREDENTIALS.CNPJ_API.username}:${API_CREDENTIALS.CNPJ_API.password}`);
 
         exibirModal('Consultando API...', false, null, '', false);
 
         GM_xmlhttpRequest({
           method: 'GET',
-          url: `http://[API-ENDPOINT-OMITIDO]/${cnpjLimpo}`,
+          url: `${API_ENDPOINTS.CONSULTA_CNPJ}/${cnpjLimpo}`,
           headers: { Authorization: `Basic ${credentials}` },
-          timeout: 15000,
+          timeout: TIMEOUTS.CONSULTA_CNPJ,
           onload: function (response) {
             ocultarModal();
             if (response.status === 200) {
@@ -514,7 +546,6 @@ console.log(`
     );
   }
 
-  // ⭐ FUNÇÃO ATUALIZADA: Consulta de Banco com Modal Tabular
   function executarFluxoDeConsultaBanco() {
     exibirModal(
       'Digite o número do banco para consulta:',
@@ -530,8 +561,8 @@ console.log(`
 
         GM_xmlhttpRequest({
           method: 'GET',
-          url: `${URL_CONSULTA_BANCO}?banco=${encodeURIComponent(numeroBancoLimpo)}`,
-          timeout: 20000,
+          url: `${API_ENDPOINTS.CONSULTA_BANCO}?banco=${encodeURIComponent(numeroBancoLimpo)}`,
+          timeout: TIMEOUTS.CONSULTA_BANCO,
           onload: function (response) {
             ocultarModal();
             if (response.status === 200) {
@@ -540,7 +571,6 @@ console.log(`
 
                 if (resultado.sucesso) {
                   if (resultado.encontrado) {
-                    // 🎨 Usar o novo modal tabular
                     exibirModalTabular(numeroBancoLimpo, resultado.resultados, resultado.metadados);
                   } else {
                     const metadados = resultado.metadados ? `\n\n📊 Análise realizada:\n• Estrutura: ${resultado.metadados.estrutura_detectada}\n• ${resultado.metadados.linhas_analisadas?.toLocaleString()} linhas verificadas\n• ${resultado.metadados.linhas_com_banco?.toLocaleString()} com banco válido` : '';
@@ -577,7 +607,7 @@ console.log(`
   // ===================================================================================
 
   document.addEventListener('keydown', (evento) => {
-    if (!window.top.location.pathname.startsWith(PREFIXO_ALVO)) {
+    if (!window.top.location.pathname.startsWith(CONFIG.PREFIXO_ALVO)) {
       return;
     }
 
